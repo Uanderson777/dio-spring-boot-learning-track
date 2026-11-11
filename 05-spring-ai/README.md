@@ -1,85 +1,125 @@
-# DIO Spring Boot - Final Project 05: Spring AI (budgeting)
+# Projeto 05 — Spring AI (Budgeting)
 
-## Introduction
+Projeto educacional da DIO que integra Spring AI a uma API de controle financeiro. O código mantém a separação original entre domínio, casos de uso e infraestrutura.
 
-This final module applies Spring AI in a budgeting API while preserving the same layered architecture used across the track.
+## Requisitos
 
-The goal is to integrate AI capabilities without bypassing domain and use case boundaries.
+- JDK 25 instalado e configurado.
+- Docker Desktop instalado e em execução (o projeto usa MySQL pelo Docker Compose).
+- Chave de API da OpenAI, configurada somente como variável de ambiente `OPENAI_API_KEY`.
+- Acesso à internet para baixar dependências Gradle e acessar a API da OpenAI.
 
-## Code Context
+> **Importante:** abra e execute este módulo a partir da pasta `05-spring-ai`. O repositório contém outros projetos independentes. Executar uma classe de outro módulo (por exemplo, `dio.catalog.Application`) não inicia esta aplicação.
 
-The project processes voice commands to create and query financial transactions.
+## Abrir no IntelliJ IDEA
 
-Primary flow:
+1. Abra a pasta `05-spring-ai` como projeto Gradle (não selecione a pasta de outro módulo).
+2. Em **File > Project Structure > Project**, selecione o JDK 25.
+3. Aguarde a sincronização do Gradle.
+4. Para executar pela IDE, abra `src/main/java/dio/budgeting/BudgetingApplication.java`.
+5. Clique em executar na classe `BudgetingApplication`.
+6. Na configuração de execução, confirme:
+   - **Main class:** `dio.budgeting.BudgetingApplication`
+   - **Working directory:** a pasta absoluta do módulo `05-spring-ai`
+   - **Environment variables:** `OPENAI_API_KEY` com sua chave válida.
 
-1. Client uploads an audio file.
-2. Audio is transcribed into text.
-3. The model selects an application tool/use case.
-4. The use case persists or queries transaction data.
-5. The final response is converted to audio.
+Não coloque a chave no código, em `application.properties`, no README ou em arquivos versionados. Configure-a nas variáveis de ambiente do sistema ou na configuração local de execução da IDE.
 
-## Project Structure
+## Executar pelo Windows (PowerShell)
 
-- `src/main/java/dio/budgeting/domain`
-  - Domain model and repository contract.
-- `src/main/java/dio/budgeting/application`
-  - Use cases used by both REST and AI tool calling.
-- `src/main/java/dio/budgeting/infrastructure`
-  - HTTP adapters, JPA adapters, and integration glue.
+Na raiz do repositório, entre primeiro no módulo:
 
-## Module-Specific Topics
-
-### Speech-to-text
-
-- Uses `TranscriptionModel` for audio transcription.
-- Model settings are configured in `application.properties`.
-
-### Tool calling
-
-- `ChatClient` registers use-case tools.
-- `@Tool` methods expose business capabilities to the model.
-
-### Text-to-speech
-
-- `TextToSpeechModel` produces MP3 output from final text.
-- AI endpoint returns generated audio.
-
-## Spring AI Documentation
-
-- Spring AI Reference: https://docs.spring.io/spring-ai/reference/index.html
-- ChatModel API: https://docs.spring.io/spring-ai/reference/api/chatmodel.html
-- ChatClient API: https://docs.spring.io/spring-ai/reference/api/chatclient.html
-- Tools API: https://docs.spring.io/spring-ai/reference/api/tools.html
-- Audio Transcriptions API: https://docs.spring.io/spring-ai/reference/api/audio/transcriptions.html
-- Audio Speech API: https://docs.spring.io/spring-ai/reference/api/audio/speech.html
-
-## Shared Architecture References
-
-Common architecture concepts are documented in the root README:
-
-- [DDD layers](../README.md#ddd-layered-architecture)
-- [Class vs record](../README.md#java-class-vs-java-record-in-domain-modeling)
-- [Strong typed identifiers](../README.md#strong-typed-identifiers)
-- [Repository pattern](../README.md#repository-pattern)
-- [Use cases and Clean Architecture](../README.md#use-cases-and-clean-architecture)
-- [Docker Compose support](../README.md#docker-compose-support-in-development)
-
-## How to Run
-
-Set your OpenAI API key:
-
-```bash
-export OPENAI_API_KEY="your_api_key_here"
+```powershell
+cd .\05-spring-ai
 ```
 
-Run the application and tests:
+Confira o Java:
+
+```powershell
+java -version
+```
+
+O Gradle Wrapper do próprio módulo já está incluído. Compile:
+
+```powershell
+.\gradlew.bat clean compileJava
+```
+
+Configure `OPENAI_API_KEY` nas variáveis de ambiente do Windows ou na configuração de execução do IntelliJ IDEA. Para uma sessão temporária do PowerShell, defina a variável antes de iniciar a aplicação:
+
+```powershell
+$env:OPENAI_API_KEY = "SUA_CHAVE_OPENAI"
+```
+
+Substitua o texto de exemplo localmente. Não compartilhe capturas de tela que mostrem a chave e nunca faça commit desse valor.
+
+Inicie o Docker Desktop e execute:
+
+```powershell
+.\gradlew.bat bootRun
+```
+
+O Spring Boot Docker Compose procura o arquivo `compose.yml` no diretório de trabalho da aplicação. Por isso, execute o comando estando dentro de `05-spring-ai`, onde esse arquivo está localizado. O Compose inicia o MySQL na porta `3307` do computador (porta `3306` dentro do contêiner).
+
+Para encerrar, use `Ctrl+C`. O volume `transaction_data` mantém os dados do banco entre reinicializações.
+
+## Executar no Linux ou macOS
+
+Dentro da pasta `05-spring-ai`, configure `OPENAI_API_KEY` no ambiente e execute:
 
 ```bash
+export OPENAI_API_KEY="SUA_CHAVE_OPENAI"
+./gradlew clean compileJava
 ./gradlew bootRun
-./gradlew test
 ```
 
-## Notes
+## Endpoints disponíveis
 
-- Educational final project focused on AI plus architectural discipline.
-- External provider integration tests may require active credentials.
+A aplicação usa a porta padrão `8080`.
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `POST` | `/transactions` | Registra uma transação por JSON |
+| `GET` | `/transactions/{category}` | Lista transações por categoria |
+| `POST` | `/transactions/ai` | Recebe áudio multipart no campo `file`, transcreve, processa com ferramentas e devolve áudio MP3 |
+
+Categorias definidas no domínio: `GROCERIES`, `PHARMA` e `AUTO`.
+
+## Testes
+
+Com Docker Desktop ativo e a variável `OPENAI_API_KEY` configurada, execute:
+
+```powershell
+.\gradlew.bat test
+```
+
+A compilação (`compileJava`) não precisa iniciar o banco nem chamar a OpenAI. Os testes de integração que chamam os serviços da OpenAI dependem de uma chave válida e de acesso à internet. Os testes de contexto também inicializam a aplicação e, portanto, dependem da configuração e dos serviços exigidos por ela.
+
+## Configurações principais
+
+- `build.gradle`: versões do Spring Boot, Spring AI, Java e dependências.
+- `src/main/resources/application.properties`: configurações da aplicação, JPA e modelos OpenAI. A chave é lida de `OPENAI_API_KEY`.
+- `compose.yml`: serviço MySQL e volume persistente.
+- `src/main/resources/prompts/system-message.st`: instrução de sistema do assistente financeiro.
+
+## Arquitetura preservada
+
+- `domain`: entidades, identificadores, categorias e contrato do repositório.
+- `application`: casos de uso para persistir e consultar transações.
+- `infrastructure/http`: endpoints REST, transcrição de áudio, chamada do ChatClient e geração de áudio.
+- `infrastructure/persistence`: adaptação JPA para persistência no MySQL.
+
+O Spring AI utiliza os casos de uso como ferramentas, mantendo as regras de negócio fora do controlador e do domínio.
+
+## Solução de problemas
+
+- **Aparece `No Docker Compose file found`:** confirme que o diretório de trabalho é `05-spring-ai` e que o arquivo `compose.yml` está nessa pasta.
+- **A IDE inicia `dio.catalog.Application`:** a configuração selecionada pertence a outro módulo. Execute `dio.budgeting.BudgetingApplication`.
+- **Erro de conexão com MySQL:** inicie o Docker Desktop e confira se a porta `3307` está livre.
+- **Erro de chave da OpenAI:** confira se `OPENAI_API_KEY` está definida no mesmo ambiente em que a aplicação é executada. Não cole a chave em arquivos versionados.
+
+## Referências
+
+- [Spring AI — documentação oficial](https://docs.spring.io/spring-ai/reference/index.html)
+- [Spring Boot — documentação oficial](https://docs.spring.io/spring-boot/index.html)
+- [Docker Compose — documentação oficial](https://docs.docker.com/compose/)
