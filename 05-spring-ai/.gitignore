@@ -5,6 +5,13 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+# Local secrets and developer-specific configuration
+.env
+.env.*
+!.env.example
+application-local.properties
+application-*.local.properties
+
 ### STS ###
 .apt_generated
 .classpath
