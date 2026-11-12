@@ -10,7 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "GROQ_API_KEY", matches = ".+")
 public class OpenAiChatClientIT {
     @Autowired
     OpenAiChatModel openAiChatModel;

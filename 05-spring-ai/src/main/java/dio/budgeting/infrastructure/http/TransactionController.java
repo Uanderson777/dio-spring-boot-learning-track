@@ -57,7 +57,7 @@ public class TransactionController {
         return listTransactionsByCategoryUseCase.execute(category).stream().map(TransactionResponse::from).toList();
     }
 
-    @PostMapping(value = "/ai", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = "audio/mp3")
+    @PostMapping(value = "/ai", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = "audio/wav")
     ResponseEntity<Resource> transcribe(@RequestParam("file") MultipartFile file) {
         var userMessage = transcriptionModel.transcribe(file.getResource());
         var result = chatClient.prompt().user(userMessage).call().content();
@@ -68,7 +68,7 @@ public class TransactionController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()
-                                .filename("audio.mp3")
+                                .filename("audio.wav")
                                 .build()
                                 .toString())
                 .body(resource);

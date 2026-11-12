@@ -1,13 +1,15 @@
-# Projeto 05 — Spring AI (Budgeting)
+# Projeto 05 — Spring AI com Groq (Budgeting)
 
 Projeto educacional da DIO que integra Spring AI a uma API de controle financeiro. O código mantém a separação original entre domínio, casos de uso e infraestrutura.
 
 ## Requisitos
 
 - JDK 25 instalado e configurado.
-- Docker Desktop instalado e em execução (o projeto usa MySQL pelo Docker Compose).
-- Chave de API da OpenAI, configurada somente como variável de ambiente `OPENAI_API_KEY`.
-- Acesso à internet para baixar dependências Gradle e acessar a API da OpenAI.
+- MySQL 9.6 local, com o banco `budgeting` e a conta `budgeting_app` já configurados.
+- Chave da Groq, configurada somente como variável de ambiente `GROQ_API_KEY`.
+- Acesso à internet para baixar dependências Gradle e acessar a API da Groq.
+
+O projeto conecta-se ao MySQL local em `localhost:3306` sem iniciar Docker. O Hibernate usa `ddl-auto=validate` e não cria nem atualiza tabelas.
 
 > **Importante:** abra e execute este módulo a partir da pasta `05-spring-ai`. O repositório contém outros projetos independentes. Executar uma classe de outro módulo (por exemplo, `dio.catalog.Application`) não inicia esta aplicação.
 
@@ -21,9 +23,9 @@ Projeto educacional da DIO que integra Spring AI a uma API de controle financeir
 6. Na configuração de execução, confirme:
    - **Main class:** `dio.budgeting.BudgetingApplication`
    - **Working directory:** a pasta absoluta do módulo `05-spring-ai`
-   - **Environment variables:** `OPENAI_API_KEY` com sua chave válida.
+   - **Environment variables:** `GROQ_API_KEY` com sua chave válida e `SPRING_DATASOURCE_PASSWORD` com a senha existente de `budgeting_app`.
 
-Não coloque a chave no código, em `application.properties`, no README ou em arquivos versionados. Configure-a nas variáveis de ambiente do sistema ou na configuração local de execução da IDE.
+O usuário padrão é `budgeting_app` e a URL padrão é `jdbc:mysql://localhost:3306/budgeting`. Não coloque chaves ou senhas no código, em `application.properties`, no README ou em arquivos versionados. Configure-as no ambiente local de execução da IDE.
 
 ## Executar pelo Windows (PowerShell)
 
@@ -45,31 +47,50 @@ O Gradle Wrapper do próprio módulo já está incluído. Compile:
 .\gradlew.bat clean compileJava
 ```
 
-Configure `OPENAI_API_KEY` nas variáveis de ambiente do Windows ou na configuração de execução do IntelliJ IDEA. Para uma sessão temporária do PowerShell, defina a variável antes de iniciar a aplicação:
+Configure `GROQ_API_KEY` e `SPRING_DATASOURCE_PASSWORD` nas variáveis de ambiente do Windows ou na configuração de execução do IntelliJ IDEA. Para solicitá-las sem eco e mantê-las somente na sessão atual do PowerShell:
 
 ```powershell
-$env:OPENAI_API_KEY = "SUA_CHAVE_OPENAI"
+function Set-SessionSecret([string]$Name, [string]$Prompt) {
+    $secure = Read-Host $Prompt -AsSecureString
+    $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try {
+        [Environment]::SetEnvironmentVariable(
+            $Name,
+            [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer),
+            [EnvironmentVariableTarget]::Process
+        )
+    } finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
+    }
+}
+
+$env:SPRING_DATASOURCE_USERNAME = "budgeting_app"
+Set-SessionSecret "SPRING_DATASOURCE_PASSWORD" "Senha MySQL de budgeting_app"
+Set-SessionSecret "GROQ_API_KEY" "Chave da Groq"
 ```
 
-Substitua o texto de exemplo localmente. Não compartilhe capturas de tela que mostrem a chave e nunca faça commit desse valor.
-
-Inicie o Docker Desktop e execute:
+Compile, teste e inicie a aplicação:
 
 ```powershell
+.\gradlew.bat compileJava
+.\gradlew.bat test
 .\gradlew.bat bootRun
 ```
 
-O Spring Boot Docker Compose procura o arquivo `compose.yml` no diretório de trabalho da aplicação. Por isso, execute o comando estando dentro de `05-spring-ai`, onde esse arquivo está localizado. O Compose inicia o MySQL na porta `3307` do computador (porta `3306` dentro do contêiner).
-
-Para encerrar, use `Ctrl+C`. O volume `transaction_data` mantém os dados do banco entre reinicializações.
+Para encerrar, use `Ctrl+C`.
 
 ## Executar no Linux ou macOS
 
-Dentro da pasta `05-spring-ai`, configure `OPENAI_API_KEY` no ambiente e execute:
+Dentro da pasta `05-spring-ai`, configure as credenciais sem gravá-las em arquivos:
 
 ```bash
-export OPENAI_API_KEY="SUA_CHAVE_OPENAI"
+read -s -p "Senha MySQL de budgeting_app: " SPRING_DATASOURCE_PASSWORD; echo
+export SPRING_DATASOURCE_PASSWORD
+export SPRING_DATASOURCE_USERNAME=budgeting_app
+read -s -p "Chave da Groq: " GROQ_API_KEY; echo
+export GROQ_API_KEY
 ./gradlew clean compileJava
+./gradlew test
 ./gradlew bootRun
 ```
 
@@ -81,26 +102,28 @@ A aplicação usa a porta padrão `8080`.
 |---|---|---|
 | `POST` | `/transactions` | Registra uma transação por JSON |
 | `GET` | `/transactions/{category}` | Lista transações por categoria |
-| `POST` | `/transactions/ai` | Recebe áudio multipart no campo `file`, transcreve, processa com ferramentas e devolve áudio MP3 |
+| `POST` | `/transactions/ai` | Recebe áudio multipart no campo `file`, transcreve, processa com ferramentas e devolve áudio WAV |
 
 Categorias definidas no domínio: `GROCERIES`, `PHARMA` e `AUTO`.
 
 ## Testes
 
-Com Docker Desktop ativo e a variável `OPENAI_API_KEY` configurada, execute:
+Com o MySQL local ativo e `SPRING_DATASOURCE_PASSWORD` e `GROQ_API_KEY` configuradas, execute:
 
 ```powershell
 .\gradlew.bat test
 ```
 
-A compilação (`compileJava`) não precisa iniciar o banco nem chamar a OpenAI. Os testes de integração que chamam os serviços da OpenAI dependem de uma chave válida e de acesso à internet. Os testes de contexto também inicializam a aplicação e, portanto, dependem da configuração e dos serviços exigidos por ela.
+A compilação (`compileJava`) não precisa iniciar o banco nem chamar a Groq. Os testes de integração que chamam os serviços da Groq dependem de uma chave válida e de acesso à internet. Os testes de contexto também inicializam a aplicação e, portanto, dependem da configuração e dos serviços exigidos por ela.
 
 ## Configurações principais
 
 - `build.gradle`: versões do Spring Boot, Spring AI, Java e dependências.
-- `src/main/resources/application.properties`: configurações da aplicação, JPA e modelos OpenAI. A chave é lida de `OPENAI_API_KEY`.
-- `compose.yml`: serviço MySQL e volume persistente.
+- `src/main/resources/application.properties`: configurações da aplicação, JPA e API compatível com OpenAI da Groq. A chave é lida de `GROQ_API_KEY`.
+- `compose.yml`: mantido como material da aula; não é usado para executar a aplicação.
 - `src/main/resources/prompts/system-message.st`: instrução de sistema do assistente financeiro.
+
+O chat usa o modelo Groq `openai/gpt-oss-120b`; transcrição usa `whisper-large-v3-turbo`. A síntese usa `canopylabs/orpheus-v1-english`, atualmente limitada a inglês e WAV, com entrada de até 200 caracteres.
 
 ## Arquitetura preservada
 
@@ -113,13 +136,15 @@ O Spring AI utiliza os casos de uso como ferramentas, mantendo as regras de neg�
 
 ## Solução de problemas
 
-- **Aparece `No Docker Compose file found`:** confirme que o diretório de trabalho é `05-spring-ai` e que o arquivo `compose.yml` está nessa pasta.
 - **A IDE inicia `dio.catalog.Application`:** a configuração selecionada pertence a outro módulo. Execute `dio.budgeting.BudgetingApplication`.
-- **Erro de conexão com MySQL:** inicie o Docker Desktop e confira se a porta `3307` está livre.
-- **Erro de chave da OpenAI:** confira se `OPENAI_API_KEY` está definida no mesmo ambiente em que a aplicação é executada. Não cole a chave em arquivos versionados.
+- **Erro de conexão com MySQL:** confira se o MySQL local está ativo em `localhost:3306`, se o banco `budgeting` existe e se `budgeting_app` tem acesso ao schema.
+- **Erro de autenticação:** configure a senha existente de `budgeting_app` em `SPRING_DATASOURCE_PASSWORD`; o projeto não redefine senhas nem cria usuários.
+- **Erro de chave da Groq:** confira se `GROQ_API_KEY` está definida no mesmo ambiente em que a aplicação é executada. Não cole a chave em arquivos versionados.
+- **Áudio de resposta:** a Groq oferece atualmente síntese Orpheus em inglês e árabe, com saída WAV; respostas em português podem não ser pronunciadas corretamente.
 
 ## Referências
 
 - [Spring AI — documentação oficial](https://docs.spring.io/spring-ai/reference/index.html)
 - [Spring Boot — documentação oficial](https://docs.spring.io/spring-boot/index.html)
-- [Docker Compose — documentação oficial](https://docs.docker.com/compose/)
+- [Groq — modelos disponíveis](https://console.groq.com/docs/models)
+- [Groq — compatibilidade com OpenAI](https://console.groq.com/docs/openai)

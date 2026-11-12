@@ -5,14 +5,13 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "GROQ_API_KEY", matches = ".+")
 public class OpenAiChatModelIT {
     @Autowired
     OpenAiApi openAiApi;
@@ -20,9 +19,8 @@ public class OpenAiChatModelIT {
     @Test
     void should_receiveResponse_when_chatModelIsCalled() {
         var options = OpenAiChatOptions.builder()
-                .model("gpt-4o-mini")
+                .model("openai/gpt-oss-120b")
                 .temperature(0.8)
-                .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.TEXT).build())
                 .build();
 
         var chatModel = OpenAiChatModel.builder()
